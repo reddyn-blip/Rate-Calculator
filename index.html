@@ -313,6 +313,16 @@
             const resultBox = document.getElementById('result-box');
             const priceBreakdownTooltip = document.getElementById('price-breakdown-tooltip');
 
+            let breakdownData = {
+                baseRate: 0,
+                additionalCharge: 0,
+                rtoCharge: 0,
+                codCharge: 0,
+                subtotal: 0,
+                gst: 0,
+                grandTotal: 0
+            };
+
             const zones = ['Local', 'Zonal', 'Metro Std', 'ROI Std', 'NE J&K Std'];
 
             // Predefined rate card data
@@ -348,11 +358,8 @@
                 tiered: tieredRates
             };
 
-            // Event listeners
-            calculateButton.addEventListener('click', calculateRate);
-            rateTypeSelect.addEventListener('change', () => {
-                toggleRateCardDisplay();
-            });
+            // Event listeners for live calculation
+            rateTypeSelect.addEventListener('change', calculateRate);
             weightInput.addEventListener('input', calculateRate);
             zoneSelect.addEventListener('change', calculateRate);
             shippingOptionRadios.forEach(radio => radio.addEventListener('change', toggleShipmentValueInput));
@@ -408,6 +415,7 @@
                 rateTableBody.appendChild(row);
                 row.querySelector('.remove-weight-range-btn').addEventListener('click', () => {
                     row.remove();
+                    calculateRate();
                 });
             }
 
@@ -655,84 +663,17 @@
             function showPriceBreakdown() {
                 const totalRateText = document.getElementById('total-rate').textContent;
                 if (totalRateText.includes('₹') && !totalRateText.includes('N/A')) {
-                    const rateType = rateTypeSelect.value;
-                    const weight = parseFloat(weightInput.value);
-                    const zone = zoneSelect.value;
-                    const selectedOption = document.querySelector('input[name="shipping-option"]:checked')?.value || 'none';
-                    const shipmentValue = parseFloat(shipmentValueInput.value);
-
-                    let baseRate = 0;
-                    let additionalCharge = 0;
-                    let rtoCharge = 0;
-                    let codCharge = 0;
-                    let subtotal = 0;
-                    let gst = 0;
-                    let grandTotal = 0;
-
-                    const currentRates = allRates[rateType];
-                    const tiers = currentRates.tiers;
-
-                    // Find the base rate for the weight
-                    let foundTier = null;
-                    for(const tier of tiers) {
-                        if (weight >= tier.min && weight <= tier.max) {
-                            foundTier = tier;
-                            break;
-                        }
-                    }
-
-                    if (foundTier) {
-                        if (foundTier.additionalPer500g) {
-                            const fixedRateTier = tiers.find(t => t.min === 0 && t.max === 0.5);
-                            const additionalWeight = weight - 0.5;
-                            const numAdditional500gms = Math.ceil(additionalWeight / 0.5);
-                            baseRate = fixedRateTier.rates[zone];
-                            additionalCharge = numAdditional500gms * foundTier.rates[zone];
-                        } else if (foundTier.additionalPerKg) {
-                             let previousTierMax = 0;
-                            const previousTiers = tiers.filter(t => t.max < foundTier.min);
-                            if (previousTiers.length > 0) {
-                                previousTierMax = Math.max(...previousTiers.map(t => t.max));
-                            }
-                            
-                            let baseRateTier = tiers.find(t => t.max === previousTierMax);
-                            baseRate = baseRateTier ? baseRateTier.rates[zone] : 0;
-                            
-                            const additionalWeight = weight - foundTier.min + 0.01;
-                            const numAdditionalKgs = Math.ceil(additionalWeight);
-                            additionalCharge = numAdditionalKgs * foundTier.rates[zone];
-                        } else {
-                            baseRate = foundTier.rates[zone];
-                        }
-                    }
-                    
-                    subtotal = baseRate + additionalCharge;
-
-                    if (rateType !== 'flat') {
-                        if (selectedOption === 'rto') {
-                            rtoCharge = subtotal; // RTO is same as forward rate
-                            subtotal += rtoCharge;
-                        }
-                        if (selectedOption === 'cod' && !isNaN(shipmentValue) && shipmentValue > 0) {
-                            codCharge = Math.max(30, shipmentValue * 0.02);
-                            subtotal += codCharge;
-                        }
-                    }
-
-                    gst = subtotal * 0.18;
-                    grandTotal = subtotal + gst;
-
-                    let breakdownHtml = `
-                        <div class="text-sm">
-                            <div class="flex justify-between"><span>Base Rate:</span><span>₹${baseRate.toFixed(2)}</span></div>
-                            <div class="flex justify-between"><span>Additional Charge:</span><span>₹${additionalCharge.toFixed(2)}</span></div>
-                            ${rtoCharge > 0 ? `<div class="flex justify-between"><span>RTO:</span><span>₹${rtoCharge.toFixed(2)}</span></div>` : ''}
-                            ${codCharge > 0 ? `<div class="flex justify-between"><span>COD:</span><span>₹${codCharge.toFixed(2)}</span></div>` : ''}
+                    const breakdownHtml = `
+                        <div class="text-sm space-y-1">
+                            <div class="flex justify-between"><span>Base Rate:</span><span>₹${breakdownData.baseRate.toFixed(2)}</span></div>
+                            <div class="flex justify-between"><span>Additional Charge:</span><span>₹${breakdownData.additionalCharge.toFixed(2)}</span></div>
+                            ${breakdownData.rtoCharge > 0 ? `<div class="flex justify-between"><span>RTO:</span><span>₹${breakdownData.rtoCharge.toFixed(2)}</span></div>` : ''}
+                            ${breakdownData.codCharge > 0 ? `<div class="flex justify-between"><span>COD:</span><span>₹${breakdownData.codCharge.toFixed(2)}</span></div>` : ''}
                             <hr class="my-1 border-gray-200">
-                            <div class="flex justify-between font-bold"><span>Subtotal:</span><span>₹${subtotal.toFixed(2)}</span></div>
-                            <div class="flex justify-between"><span>GST (18%):</span><span>₹${gst.toFixed(2)}</span></div>
+                            <div class="flex justify-between font-bold"><span>Subtotal:</span><span>₹${breakdownData.subtotal.toFixed(2)}</span></div>
+                            <div class="flex justify-between"><span>GST (18%):</span><span>₹${breakdownData.gst.toFixed(2)}</span></div>
                             <hr class="my-1 border-gray-200">
-                            <div class="flex justify-between font-bold"><span>Grand Total:</span><span>₹${grandTotal.toFixed(2)}</span></div>
+                            <div class="flex justify-between font-bold"><span>Grand Total:</span><span>₹${breakdownData.grandTotal.toFixed(2)}</span></div>
                         </div>
                     `;
 
@@ -774,6 +715,8 @@
                 try {
                     let foundTier = null;
                     const tiers = currentRates.tiers;
+                    
+                    breakdownData = { baseRate: 0, additionalCharge: 0, rtoCharge: 0, codCharge: 0, subtotal: 0, gst: 0, grandTotal: 0 };
 
                     // Find the correct tier for the given weight
                     for(const tier of tiers) {
@@ -785,10 +728,11 @@
                     
                     if (foundTier) {
                         if (foundTier.additionalPer500g) {
-                            const fixedRate = tiers.find(t => t.min === 0 && t.max === 0.5).rates[zone];
+                            const fixedRateTier = tiers.find(t => t.min === 0 && t.max === 0.5);
                             const additionalWeight = weight - 0.5;
                             const numAdditional500gms = Math.ceil(additionalWeight / 0.5);
-                            totalRate = fixedRate + (numAdditional500gms * foundTier.rates[zone]);
+                            breakdownData.baseRate = fixedRateTier.rates[zone];
+                            breakdownData.additionalCharge = numAdditional500gms * foundTier.rates[zone];
                         } else if (foundTier.additionalPerKg) {
                             let previousTierMax = 0;
                             const previousTiers = tiers.filter(t => t.max < foundTier.min);
@@ -797,41 +741,50 @@
                             }
                             
                             let baseRateTier = tiers.find(t => t.max === previousTierMax);
-                            let baseRate = baseRateTier ? baseRateTier.rates[zone] : 0;
+                            breakdownData.baseRate = baseRateTier ? baseRateTier.rates[zone] : 0;
                             
                             // Adjust for 'Flat Rate' logic
                             if (rateType === 'flat') {
-                                if (foundTier.key === '2-4') baseRate = tiers.find(t => t.key === '0-2').rates[zone];
-                                if (foundTier.key === '5-9') baseRate = tiers.find(t => t.key === '4-5').rates[zone];
-                                if (foundTier.key === '10-19') baseRate = tiers.find(t => t.key === '9-10').rates[zone];
-                                if (foundTier.key === '20+') baseRate = tiers.find(t => t.key === '19-20').rates[zone];
+                                if (foundTier.key === '2-4') breakdownData.baseRate = tiers.find(t => t.key === '0-2').rates[zone];
+                                if (foundTier.key === '5-9') breakdownData.baseRate = tiers.find(t => t.key === '4-5').rates[zone];
+                                if (foundTier.key === '10-19') breakdownData.baseRate = tiers.find(t => t.key === '9-10').rates[zone];
+                                if (foundTier.key === '20+') breakdownData.baseRate = tiers.find(t => t.key === '19-20').rates[zone];
                             } else {
                                 // For 'Tiered Rate', the base rate is the rate of the tier just before the additional charge tier.
-                                if (foundTier.key === '5-9') baseRate = tiers.find(t => t.key === '4-5').rates[zone];
-                                if (foundTier.key === '10-19') baseRate = tiers.find(t => t.key === '9-10').rates[zone];
-                                if (foundTier.key === '20+') baseRate = tiers.find(t => t.key === '19-20').rates[zone];
+                                if (foundTier.key === '5-9') breakdownData.baseRate = tiers.find(t => t.key === '4-5').rates[zone];
+                                if (foundTier.key === '10-19') breakdownData.baseRate = tiers.find(t => t.key === '9-10').rates[zone];
+                                if (foundTier.key === '20+') breakdownData.baseRate = tiers.find(t => t.key === '19-20').rates[zone];
                             }
 
                             const additionalWeight = weight - foundTier.min + 0.01;
                             const numAdditionalKgs = Math.ceil(additionalWeight);
-                            totalRate = baseRate + (numAdditionalKgs * foundTier.rates[zone]);
+                            breakdownData.additionalCharge = numAdditionalKgs * foundTier.rates[zone];
                             
                         } else {
-                            totalRate = foundTier.rates[zone];
+                            breakdownData.baseRate = foundTier.rates[zone];
                         }
                     } else {
                          totalRate = 'N/A'; // No matching tier found
                     }
 
+                    breakdownData.subtotal = breakdownData.baseRate + breakdownData.additionalCharge;
+                    
                     if (rateType !== 'flat') {
-                        if (selectedOption === 'rto' && typeof totalRate === 'number') {
-                            totalRate *= 2;
+                        if (selectedOption === 'rto') {
+                            breakdownData.rtoCharge = breakdownData.subtotal; // RTO is same as forward rate
+                            breakdownData.subtotal += breakdownData.rtoCharge;
                         }
-                        if (selectedOption === 'cod' && !isNaN(shipmentValue) && shipmentValue > 0 && typeof totalRate === 'number') {
-                            const codCharge = Math.max(30, shipmentValue * 0.02);
-                            totalRate += codCharge;
+                        if (selectedOption === 'cod' && !isNaN(shipmentValue) && shipmentValue > 0) {
+                            breakdownData.codCharge = Math.max(30, shipmentValue * 0.02);
+                            breakdownData.subtotal += breakdownData.codCharge;
                         }
                     }
+
+                    breakdownData.gst = breakdownData.subtotal * 0.18;
+                    breakdownData.grandTotal = breakdownData.subtotal + breakdownData.gst;
+
+                    totalRate = breakdownData.subtotal;
+
                 } catch (error) {
                     console.error("Error during calculation:", error);
                     totalRate = "Error";
@@ -852,6 +805,7 @@
             // Initial setup
             window.onload = () => {
                 renderRateCards();
+                calculateRate(); // Initial calculation on load
             };
         });
     </script>
