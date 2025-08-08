@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipping Rate Calculator</title>
+    <!-- Use Tailwind CSS for a clean and modern design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        /* Custom styles for the calculator */
+        .card {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .shipping-icon {
+            position: absolute;
+            animation: float 15s ease-in-out infinite;
+            opacity: 0.1;
+            z-index: 0;
+        }
+        .shipping-icon.truck {
+            top: 10%;
+            left: 5%;
+            width: 80px;
+        }
+        .shipping-icon.box {
+            top: 70%;
+            left: 80%;
+            width: 60px;
+        }
+        .shipping-icon.parcel {
+            top: 40%;
+            left: 20%;
+            width: 50px;
+        }
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(-20px, 20px); }
+            100% { transform: translate(0, 0); }
+        }
+    </style>
+</head>
+<body class="p-4 relative">
+    <!-- Background animations -->
+    <svg class="shipping-icon truck" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 20H4C2.89543 20 2 19.1046 2 18V6C2 4.89543 2.89543 4 4 4H10L14 8H20C21.1046 8 22 8.89543 22 10V18C22 19.1046 21.1046 20 20 20H18C18 21.1046 17.1046 22 16 22C14.8954 22 14 21.1046 14 20H10C10 21.1046 9.10457 22 8 22C6.89543 22 6 21.1046 6 20H10ZM16 20C16 19.4477 16.4477 19 17 19C17.5523 19 18 19.4477 18 20V19C19.6569 19 21 17.6569 21 16V10.5C21 9.67157 20.3284 9 19.5 9H14L10 5H4.5C3.11929 5 2 6.11929 2 7.5V18C2 19.6569 3.34315 21 5 21C6.65685 21 8 19.6569 8 18H16Z" fill="#1e293b"/>
+    </svg>
+    <svg class="shipping-icon box" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L22 7.5V16.5L12 22L2 16.5V7.5L12 2ZM12 4.14815L4 8.64815V15.3519L12 19.8519L20 15.3519V8.64815L12 4.14815ZM12 11.5L20 7.5L12 3.5L4 7.5L12 11.5ZM12 13.5V20L4 16.5V9.5L12 13.5Z" fill="#475569"/>
+    </svg>
+    <svg class="shipping-icon parcel" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L22 7.5V16.5L12 22L2 16.5V7.5L12 2ZM12 11.5L4 7.5L12 3.5L20 7.5L12 11.5ZM12 13.5V20L4 16.5V9.5L12 13.5Z" fill="#64748b"/>
+    </svg>
+    
+    <div class="flex items-center justify-center min-h-screen relative z-10">
+        <div class="w-full max-w-2xl p-6 bg-white rounded-xl card">
+            <!-- Ekart-style logo -->
+            <div class="flex items-center justify-center mb-6 space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package">
+                    <path d="m7.5 4.27 9 5.15"/>
+                    <path d="M2.5 8.65 12 14l9.5-5.35"/>
+                    <path d="M12 21.4V14"/>
+                    <path d="M2.5 12.35v5.3L12 22.15v-5.3"/>
+                    <path d="M21.5 12.35v5.3L12 22.15v-5.3"/>
+                </svg>
+                <h1 class="text-3xl font-bold text-gray-800">Rate Calculator</h1>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Rate Type Selection -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                         <label for="rate-type-select" class="block text-sm font-medium text-gray-700">Select Rate Type:</label>
+                         <button id="add-rate-card-btn"
+                                 class="py-1 px-3 text-xs font-medium text-white bg-indigo-500 rounded-md hover:bg-indigo-600 transition-colors">
+                             Add Rate Card
+                         </button>
+                    </div>
+                    <select id="rate-type-select"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 transition duration-200 ease-in-out transform focus:scale-105">
+                        <option value="flat">Flat Rate</option>
+                        <option value="tiered">Tiered Rate</option>
+                    </select>
+                </div>
+
+                <!-- Weight Input -->
+                <div>
+                    <label for="weight-input" class="block text-sm font-medium text-gray-700">Enter Weight (kg):</label>
+                    <input type="number" id="weight-input" min="0" step="0.1" value="0.5"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 transition duration-200 ease-in-out transform focus:scale-105">
+                </div>
+
+                <!-- Zone Selection -->
+                <div>
+                    <label for="zone-select" class="block text-sm font-medium text-gray-700">Select Zone:</label>
+                    <select id="zone-select"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 transition duration-200 ease-in-out transform focus:scale-105">
+                        <option value="Local">Local</option>
+                        <option value="Zonal">Zonal</option>
+                        <option value="Metro Std">Metro Std</option>
+                        <option value="ROI Std">ROI Std</option>
+                        <option value="NE J&K Std">NE J&K Std</option>
+                    </select>
+                </div>
+
+                <!-- Additional Options (Tiered Rate Only) -->
+                <div id="additional-options-container" class="space-y-2 mt-4 hidden">
+                    <h3 class="text-lg font-medium text-gray-700">Additional Charges:</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <input id="none-option" name="shipping-option" type="radio" value="none" checked
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="none-option" class="ml-2 block text-sm text-gray-900">
+                                None
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="rto-option" name="shipping-option" type="radio" value="rto"
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="rto-option" class="ml-2 block text-sm text-gray-900">
+                                RTO (Return to Origin)
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="cod-option" name="shipping-option" type="radio" value="cod"
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="cod-option" class="ml-2 block text-sm text-gray-900">
+                                COD (Cash on Delivery)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipment Value Input (only for Tiered Rate + COD) -->
+                <div id="shipment-value-container" class="hidden mt-4">
+                    <label for="shipment-value-input" class="block text-sm font-medium text-gray-700">
+                        Shipment Value (₹):
+                    </label>
+                    <input type="number" id="shipment-value-input" min="0" step="1" value="0"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 transition duration-200 ease-in-out transform focus:scale-105">
+                    <p class="mt-1 text-xs text-gray-500">
+                        COD charge is ₹30 or 2% of this value, whichever is higher.
+                    </p>
+                </div>
+
+                <!-- Calculate Button -->
+                <button id="calculate-btn"
+                        class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-200 ease-in-out transform hover:-translate-y-1 hover:scale-105">
+                    Calculate Rate
+                </button>
+            </div>
+
+            <!-- Result Display -->
+            <div id="result-box" class="mt-6 p-4 border rounded-md border-gray-200 text-center bg-gray-50">
+                <p class="text-sm text-gray-500">
+                    Calculated Rate:
+                </p>
+                <p id="total-rate" class="mt-1 text-2xl font-bold text-indigo-600">
+                    ₹0.00
+                </p>
+                 <p class="text-sm text-gray-500 mt-4">
+                    Rate with GST (18%):
+                </p>
+                <p id="total-rate-gst" class="mt-1 text-2xl font-bold text-indigo-600">
+                    ₹0.00
+                </p>
+            </div>
+
+            <!-- Rate Card Tables -->
+            <div id="rate-card-tables-container">
+                <!-- Tables will be dynamically generated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for adding a new rate card -->
+    <div id="add-card-modal" class="modal-overlay hidden">
+        <div class="bg-white p-6 rounded-xl w-full max-w-lg card relative max-h-full overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Add New Rate Card</h2>
+                <button id="close-modal-btn" type="button" class="text-gray-500 hover:text-gray-800">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="add-card-form" class="space-y-4">
+                <div>
+                    <label for="new-card-name" class="block text-sm font-medium text-gray-700">Rate Card Name:</label>
+                    <input type="text" id="new-card-name" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+
+                <!-- Dynamic inputs for weight ranges and rates -->
+                <h3 class="text-lg font-medium text-gray-700 mt-4">Define Weight Tiers and Rates:</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-xs">
+                        <thead>
+                            <tr>
+                                <th class="py-2 px-3">Start (kg)</th>
+                                <th class="py-2 px-3">End (kg)</th>
+                                <th class="py-2 px-3">Local</th>
+                                <th class="py-2 px-3">Zonal</th>
+                                <th class="py-2 px-3">Metro Std</th>
+                                <th class="py-2 px-3">ROI Std</th>
+                                <th class="py-2 px-3">NE J&K Std</th>
+                                <th class="py-2 px-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rate-table-body">
+                            <!-- Dynamic rows will be added here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-between items-center mt-4">
+                    <button type="button" id="add-weight-range-btn"
+                            class="py-2 px-4 rounded-md text-sm font-medium text-white bg-green-500 hover:bg-green-600 transition-colors">
+                        Add New Weight Range
+                    </button>
+                    <div class="flex space-x-2">
+                        <button type="button" id="cancel-add-card-btn"
+                                class="py-2 px-4 rounded-md text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="py-2 px-4 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
+                            Save Rate Card
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const calculateButton = document.getElementById('calculate-btn');
+            const rateTypeSelect = document.getElementById('rate-type-select');
+            const weightInput = document.getElementById('weight-input');
+            const zoneSelect = document.getElementById('zone-select');
+            const shippingOptionRadios = document.querySelectorAll('input[name="shipping-option"]');
+            const shipmentValueInput = document.getElementById('shipment-value-input');
+            const addRateCardBtn = document.getElementById('add-rate-card-btn');
+            const addCardModal = document.getElementById('add-card-modal');
+            const addCardForm = document.getElementById('add-card-form');
+            const newCardNameInput = document.getElementById('new-card-name');
+            const cancelAddCardBtn = document.getElementById('cancel-add-card-btn');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const addWeightRangeBtn = document.getElementById('add-weight-range-btn');
+            const rateTableBody = document.getElementById('rate-table-body');
+
+            const zones = ['Local', 'Zonal', 'Metro Std', 'ROI Std', 'NE J&K Std'];
+
+            // Predefined rate card data
+            const flatRates = {
+                name: 'Flat Rate',
+                tiers: [
+                    { min: 0, max: 2, key: '0-2', rates: { 'Local': 90.0, 'Zonal': 90.0, 'Metro Std': 90.0, 'ROI Std': 90.0, 'NE J&K Std': 90.0 } },
+                    { min: 2.01, max: 4, key: '2-4', rates: { 'Local': 35.0, 'Zonal': 35.0, 'Metro Std': 35.0, 'ROI Std': 35.0, 'NE J&K Std': 35.0 }, additionalPerKg: true },
+                    { min: 4.01, max: 5, key: '4-5', rates: { 'Local': 185.0, 'Zonal': 185.0, 'Metro Std': 185.0, 'ROI Std': 185.0, 'NE J&K Std': 185.0 } },
+                    { min: 5.01, max: 9, key: '5-9', rates: { 'Local': 35.0, 'Zonal': 35.0, 'Metro Std': 35.0, 'ROI Std': 35.0, 'NE J&K Std': 35.0 }, additionalPerKg: true },
+                    { min: 9.01, max: 10, key: '9-10', rates: { 'Local': 310.0, 'Zonal': 310.0, 'Metro Std': 310.0, 'ROI Std': 310.0, 'NE J&K Std': 310.0 } },
+                    { min: 10.01, max: 19, key: '10-19', rates: { 'Local': 30.0, 'Zonal': 30.0, 'Metro Std': 30.0, 'ROI Std': 30.0, 'NE J&K Std': 30.0 }, additionalPerKg: true },
+                    { min: 19.01, max: 20, key: '19-20', rates: { 'Local': 580.0, 'Zonal': 580.0, 'Metro Std': 580.0, 'ROI Std': 580.0, 'NE J&K Std': 580.0 } },
+                    { min: 20.01, max: Infinity, key: '20+', rates: { 'Local': 26.0, 'Zonal': 26.0, 'Metro Std': 26.0, 'ROI Std': 26.0, 'NE J&K Std': 26.0 }, additionalPerKg: true }
+                ]
+            };
+            const tieredRates = {
+                name: 'Tiered Rate',
+                tiers: [
+                    { min: 0, max: 0.5, key: '0-0.5', rates: { 'Local': 28.0, 'Zonal': 30.0, 'Metro Std': 43.0, 'ROI Std': 49.0, 'NE J&K Std': 71.0 } },
+                    { min: 0.51, max: 4, key: '0.5-4', rates: { 'Local': 25.0, 'Zonal': 29.0, 'Metro Std': 38.0, 'ROI Std': 47.0, 'NE J&K Std': 64.0 }, additionalPer500g: true },
+                    { min: 4.01, max: 5, key: '4-5', rates: { 'Local': 150.0, 'Zonal': 160.0, 'Metro Std': 180.0, 'ROI Std': 215.0, 'NE J&K Std': 250.0 } },
+                    { min: 5.01, max: 9, key: '5-9', rates: { 'Local': 27.0, 'Zonal': 29.0, 'Metro Std': 32.0, 'ROI Std': 39.0, 'NE J&K Std': 45.0 }, additionalPerKg: true },
+                    { min: 9.01, max: 10, key: '9-10', rates: { 'Local': 260.0, 'Zonal': 275.0, 'Metro Std': 310.0, 'ROI Std': 360.0, 'NE J&K Std': 420.0 } },
+                    { min: 10.01, max: 19, key: '10-19', rates: { 'Local': 24.0, 'Zonal': 26.0, 'Metro Std': 28.0, 'ROI Std': 31.0, 'NE J&K Std': 37.0 }, additionalPerKg: true },
+                    { min: 19.01, max: 20, key: '19-20', rates: { 'Local': 420.0, 'Zonal': 460.0, 'Metro Std': 540.0, 'ROI Std': 580.0, 'NE J&K Std': 760.0 } },
+                    { min: 20.01, max: Infinity, key: '20+', rates: { 'Local': 19.0, 'Zonal': 21.0, 'Metro Std': 24.0, 'ROI Std': 26.0, 'NE J&K Std': 34.0 }, additionalPerKg: true }
+                ]
+            };
+            
+            let allRates = {
+                flat: flatRates,
+                tiered: tieredRates
+            };
+
+            // Event listeners
+            calculateButton.addEventListener('click', calculateRate);
+            rateTypeSelect.addEventListener('change', () => {
+                toggleRateCardDisplay();
+            });
+            weightInput.addEventListener('input', calculateRate);
+            zoneSelect.addEventListener('change', calculateRate);
+            shippingOptionRadios.forEach(radio => radio.addEventListener('change', toggleShipmentValueInput));
+            shipmentValueInput.addEventListener('input', calculateRate);
+
+            // Modal event listeners
+            addRateCardBtn.addEventListener('click', () => {
+                addCardModal.classList.remove('hidden');
+                addCardForm.reset();
+                rateTableBody.innerHTML = '';
+                
+                // Pre-populate with default weight ranges
+                const defaultRanges = [
+                    { min: 0, max: 2, rates: {} },
+                    { min: 2.01, max: 5, rates: {} },
+                    { min: 5.01, max: 10, rates: {} },
+                    { min: 10.01, max: 20, rates: {} },
+                    { min: 20.01, max: Infinity, rates: {} }
+                ];
+                defaultRanges.forEach(range => addWeightRangeRow(range.min, range.max, range.rates));
+            });
+            cancelAddCardBtn.addEventListener('click', () => {
+                addCardModal.classList.add('hidden');
+            });
+            closeModalBtn.addEventListener('click', () => {
+                addCardModal.classList.add('hidden');
+            });
+            addCardForm.addEventListener('submit', handleAddCardSubmit);
+            addWeightRangeBtn.addEventListener('click', addWeightRangeRow);
+
+            function addWeightRangeRow(start = '', end = '', rates = {}) {
+                const row = document.createElement('tr');
+                row.classList.add('rate-row');
+                row.innerHTML = `
+                    <td class="py-2 px-3">
+                        <input type="number" step="0.01" class="w-full p-1 border rounded-md" data-input="min-weight" value="${start}">
+                    </td>
+                    <td class="py-2 px-3">
+                        <input type="number" step="0.01" class="w-full p-1 border rounded-md" data-input="max-weight" value="${end}">
+                    </td>
+                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md" data-zone="Local" value="${rates['Local'] || 0}"></td>
+                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md" data-zone="Zonal" value="${rates['Zonal'] || 0}"></td>
+                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md" data-zone="Metro Std" value="${rates['Metro Std'] || 0}"></td>
+                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md" data-zone="ROI Std" value="${rates['ROI Std'] || 0}"></td>
+                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md" data-zone="NE J&K Std" value="${rates['NE J&K Std'] || 0}"></td>
+                    <td class="py-2 px-3">
+                        <button type="button" class="remove-weight-range-btn text-red-500 hover:text-red-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-1 12H6L5 7m5 0V6a2 2 0 012-2h4a2 2 0 012 2v1m-1 0v10a1 1 0 01-1 1h-8a1 1 0 01-1-1V7h10z" />
+                            </svg>
+                        </button>
+                    </td>
+                `;
+                rateTableBody.appendChild(row);
+                row.querySelector('.remove-weight-range-btn').addEventListener('click', () => {
+                    row.remove();
+                });
+            }
+
+            function renderRateCards() {
+                const container = document.getElementById('rate-card-tables-container');
+                container.innerHTML = ''; // Clear existing tables
+
+                // Add predefined cards
+                container.appendChild(createRateCardTable('flat', 'Flat Rate Card', flatRates.tiers, flatRates.name, false));
+                container.appendChild(createRateCardTable('tiered', 'Tiered Rate Card', tieredRates.tiers, tieredRates.name, false));
+
+                // Add custom cards
+                for (const key in allRates) {
+                    if (key !== 'flat' && key !== 'tiered') {
+                        container.appendChild(createRateCardTable(key, allRates[key].name, allRates[key].tiers, allRates[key].name, true));
+                    }
+                }
+                toggleRateCardDisplay();
+            }
+
+            function createRateCardTable(id, name, tiers, rateCardName, isCustom = false) {
+                const tableContainer = document.createElement('div');
+                tableContainer.id = `${id}-rate-card-container`;
+                tableContainer.classList.add('rate-card-table', 'mt-8', 'hidden');
+
+                const headerDiv = document.createElement('div');
+                headerDiv.classList.add('flex', 'justify-between', 'items-center', 'mb-4');
+                headerDiv.innerHTML = `<h2 class="text-2xl font-bold text-gray-800">${name}</h2>`;
+
+                if (isCustom) {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.classList.add('delete-rate-card-btn', 'py-1', 'px-3', 'text-xs', 'font-medium', 'text-white', 'bg-red-500', 'rounded-md', 'hover:bg-red-600', 'transition-colors');
+                    deleteButton.setAttribute('data-card-id', `${id}-rate-card-container`);
+                    deleteButton.setAttribute('data-option-id', id);
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.addEventListener('click', deleteCustomRateCard);
+                    headerDiv.appendChild(deleteButton);
+                }
+
+                tableContainer.appendChild(headerDiv);
+
+                const tableWrapper = document.createElement('div');
+                tableWrapper.classList.add('overflow-x-auto', 'rounded-xl');
+                const table = document.createElement('table');
+                table.classList.add('min-w-full');
+
+                // Create table header
+                const thead = document.createElement('thead');
+                let headerRow = '<tr><th class="py-3 px-4">Weight</th>';
+                zones.forEach(zone => {
+                    headerRow += `<th class="py-3 px-4">${zone}</th>`;
+                });
+                headerRow += '</tr>';
+                thead.innerHTML = headerRow;
+                table.appendChild(thead);
+
+                // Create table body
+                const tbody = document.createElement('tbody');
+                tiers.forEach((tier, index) => {
+                    const row = document.createElement('tr');
+                    const rowClass = index % 2 === 0 ? 'bg-gray-50' : '';
+                    if (rowClass) {
+                        row.classList.add(rowClass);
+                    }
+                    let weightRangeText = '';
+                    if (tier.min !== undefined && tier.max !== undefined) {
+                         if (tier.max === Infinity) {
+                            weightRangeText = `${tier.min}kg+`;
+                        } else if (rateCardName === 'Flat Rate') {
+                            if (tier.additionalPerKg) {
+                                weightRangeText = `Additional 1kg (upto ${tier.max}kgs)`;
+                            } else {
+                                weightRangeText = `${tier.min}-${tier.max}kgs (fixed)`;
+                            }
+                        } else {
+                            if (tier.min < 1 && tier.max < 1) {
+                                weightRangeText = `0-${tier.max * 1000} gms`;
+                            } else {
+                                weightRangeText = `500 gms thereafter (upto 4kgs)`;
+                            }
+                        }
+                    } else if (tier.key === '20+') {
+                        weightRangeText = 'Additional 1kg';
+                    } else if (tier.key === '10-19') {
+                        weightRangeText = 'Additional 1kg (upto 19kgs)';
+                    } else if (tier.key === '5-9') {
+                        weightRangeText = 'Additional 1kg (upto 9kgs)';
+                    } else if (tier.key === '0.5-4') {
+                         weightRangeText = '500 gms thereafter (upto 4kgs)';
+                    } else if (tier.key === '0-2') {
+                        weightRangeText = '0-2kgs (fixed)';
+                    } else if (tier.key === '4-5') {
+                        weightRangeText = '4kgs-5kgs (fixed)';
+                    } else if (tier.key === '9-10') {
+                        weightRangeText = '9kgs-10kgs (fixed)';
+                    } else if (tier.key === '19-20') {
+                        weightRangeText = '19kgs-20kgs (fixed)';
+                    } else if (tier.key === '0-0.5') {
+                        weightRangeText = '0-500 gms';
+                    } else {
+                        weightRangeText = `${tier.min}-${tier.max}kgs`;
+                    }
+                    
+                    let rowHtml = `<td class="py-3 px-4">${weightRangeText}</td>`;
+                    zones.forEach(zone => {
+                        rowHtml += `<td class="py-3 px-4">${tier.rates[zone]}</td>`;
+                    });
+                    row.innerHTML = rowHtml;
+                    tbody.appendChild(row);
+                });
+                table.appendChild(tbody);
+
+                tableWrapper.appendChild(table);
+                tableContainer.appendChild(tableWrapper);
+
+                return tableContainer;
+            }
+
+
+            function toggleRateCardDisplay() {
+                const rateType = rateTypeSelect.value;
+                const allRateCards = document.querySelectorAll('.rate-card-table');
+                allRateCards.forEach(card => card.classList.add('hidden'));
+
+                const selectedRateCard = document.getElementById(rateType + '-rate-card-container') || document.getElementById(`custom-card-${rateType}-rate-card-container`);
+                if (selectedRateCard) {
+                    selectedRateCard.classList.remove('hidden');
+                }
+
+                toggleAdditionalOptions();
+            }
+
+            function toggleAdditionalOptions() {
+                const rateType = rateTypeSelect.value;
+                const additionalOptionsContainer = document.getElementById('additional-options-container');
+                if (rateType !== 'flat') {
+                    additionalOptionsContainer.classList.remove('hidden');
+                } else {
+                    additionalOptionsContainer.classList.add('hidden');
+                    document.getElementById('none-option').checked = true;
+                    document.getElementById('shipment-value-container').classList.add('hidden');
+                }
+                calculateRate();
+            }
+
+            function toggleShipmentValueInput() {
+                const selectedOption = document.querySelector('input[name="shipping-option"]:checked')?.value;
+                const shipmentValueContainer = document.getElementById('shipment-value-container');
+                if (selectedOption === 'cod') {
+                    shipmentValueContainer.classList.remove('hidden');
+                } else {
+                    shipmentValueContainer.classList.add('hidden');
+                }
+                calculateRate();
+            }
+
+            function handleAddCardSubmit(event) {
+                event.preventDefault();
+                
+                const cardName = newCardNameInput.value.trim();
+                if (!cardName) {
+                    alert('Please provide a name for the new rate card.');
+                    return;
+                }
+
+                const newTiers = [];
+                const rows = rateTableBody.querySelectorAll('tr');
+                if (rows.length === 0) {
+                    alert('Please add at least one weight range.');
+                    return;
+                }
+
+                let lastMaxWeight = 0;
+                let isValid = true;
+                rows.forEach(row => {
+                    const minWeightInput = row.querySelector('[data-input="min-weight"]');
+                    const maxWeightInput = row.querySelector('[data-input="max-weight"]');
+                    
+                    const min = parseFloat(minWeightInput.value);
+                    const max = parseFloat(maxWeightInput.value);
+
+                    if (isNaN(min) || isNaN(max) || min < lastMaxWeight || max <= min) {
+                         alert('Please enter valid, sequential weight ranges.');
+                         isValid = false;
+                         return;
+                    }
+                    lastMaxWeight = max;
+
+                    const rates = {};
+                    zones.forEach(zone => {
+                        const rate = parseFloat(row.querySelector(`[data-zone="${zone}"]`).value);
+                        if(isNaN(rate)) {
+                           alert('Please enter a valid number for all rates.');
+                           isValid = false;
+                           return;
+                        }
+                        rates[zone] = rate;
+                    });
+
+                    if(isValid) {
+                        newTiers.push({ min, max, rates });
+                    }
+                });
+
+                if (!isValid) return;
+
+                const customCardCounter = Object.keys(allRates).filter(key => key.startsWith('custom')).length + 1;
+                const optionId = `custom${customCardCounter}`;
+                allRates[optionId] = { name: cardName, tiers: newTiers };
+
+                // Add new option to the dropdown
+                const newOption = document.createElement('option');
+                newOption.value = optionId;
+                newOption.textContent = cardName;
+                rateTypeSelect.appendChild(newOption);
+
+                renderRateCards();
+
+                // Set the newly added card as the selected one
+                rateTypeSelect.value = optionId;
+                addCardModal.classList.add('hidden');
+                addCardForm.reset();
+                toggleRateCardDisplay();
+            }
+
+            function deleteCustomRateCard(event) {
+                const button = event.target;
+                const cardId = button.getAttribute('data-card-id');
+                const optionId = button.getAttribute('data-option-id');
+                
+                const cardElement = document.getElementById(cardId);
+                if(cardElement) cardElement.remove();
+                
+                const optionElement = rateTypeSelect.querySelector(`option[value="${optionId}"]`);
+                if(optionElement) optionElement.remove();
+
+                delete allRates[optionId];
+
+                rateTypeSelect.value = 'flat';
+                toggleRateCardDisplay();
+            }
+
+            function calculateRate() {
+                const rateType = rateTypeSelect.value;
+                const weight = parseFloat(weightInput.value);
+                const zone = zoneSelect.value;
+                const selectedOption = document.querySelector('input[name="shipping-option"]:checked')?.value || 'none';
+                const shipmentValue = parseFloat(shipmentValueInput.value);
+
+                const resultDisplay = document.getElementById('total-rate');
+                const resultDisplayGST = document.getElementById('total-rate-gst');
+                
+                let totalRate = 0;
+
+                if (isNaN(weight) || weight <= 0) {
+                    resultDisplay.textContent = 'Invalid Weight';
+                    resultDisplayGST.textContent = 'Invalid Weight';
+                    return;
+                }
+                
+                const currentRates = allRates[rateType];
+                if (!currentRates) {
+                    resultDisplay.textContent = 'Rate Card Not Found';
+                    resultDisplayGST.textContent = 'Rate Card Not Found';
+                    return;
+                }
+
+                try {
+                    let foundTier = null;
+                    const tiers = currentRates.tiers;
+
+                    // Find the correct tier for the given weight
+                    for(const tier of tiers) {
+                        if (weight >= tier.min && weight <= tier.max) {
+                            foundTier = tier;
+                            break;
+                        }
+                    }
+                    
+                    if (foundTier) {
+                        if (foundTier.additionalPer500g) {
+                            const fixedRate = tiers.find(t => t.min === 0 && t.max === 0.5).rates[zone];
+                            const additionalWeight = weight - 0.5;
+                            const numAdditional500gms = Math.ceil(additionalWeight / 0.5);
+                            totalRate = fixedRate + (numAdditional500gms * foundTier.rates[zone]);
+                        } else if (foundTier.additionalPerKg) {
+                            let previousTierMax = 0;
+                            const previousTiers = tiers.filter(t => t.max < foundTier.min);
+                            if (previousTiers.length > 0) {
+                                previousTierMax = Math.max(...previousTiers.map(t => t.max));
+                            }
+                            
+                            let baseRateTier = tiers.find(t => t.max === previousTierMax);
+                            let baseRate = baseRateTier ? baseRateTier.rates[zone] : 0;
+                            
+                            // Adjust for 'Flat Rate' logic
+                            if (rateType === 'flat') {
+                                if (foundTier.key === '2-4') baseRate = tiers.find(t => t.key === '0-2').rates[zone];
+                                if (foundTier.key === '5-9') baseRate = tiers.find(t => t.key === '4-5').rates[zone];
+                                if (foundTier.key === '10-19') baseRate = tiers.find(t => t.key === '9-10').rates[zone];
+                                if (foundTier.key === '20+') baseRate = tiers.find(t => t.key === '19-20').rates[zone];
+                            } else {
+                                // For 'Tiered Rate', the base rate is the rate of the tier just before the additional charge tier.
+                                if (foundTier.key === '5-9') baseRate = tiers.find(t => t.key === '4-5').rates[zone];
+                                if (foundTier.key === '10-19') baseRate = tiers.find(t => t.key === '9-10').rates[zone];
+                                if (foundTier.key === '20+') baseRate = tiers.find(t => t.key === '19-20').rates[zone];
+                            }
+
+                            const additionalWeight = weight - foundTier.min + 0.01;
+                            const numAdditionalKgs = Math.ceil(additionalWeight);
+                            totalRate = baseRate + (numAdditionalKgs * foundTier.rates[zone]);
+                            
+                        } else {
+                            totalRate = foundTier.rates[zone];
+                        }
+                    } else {
+                         totalRate = 'N/A'; // No matching tier found
+                    }
+
+                    if (rateType !== 'flat') {
+                        if (selectedOption === 'rto' && typeof totalRate === 'number') {
+                            totalRate *= 2;
+                        }
+                        if (selectedOption === 'cod' && !isNaN(shipmentValue) && shipmentValue > 0 && typeof totalRate === 'number') {
+                            const codCharge = Math.max(30, shipmentValue * 0.02);
+                            totalRate += codCharge;
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error during calculation:", error);
+                    totalRate = "Error";
+                }
+                
+                let totalWithGST = "Error";
+                if (typeof totalRate === 'number') {
+                    const gst = totalRate * 0.18;
+                    totalWithGST = totalRate + gst;
+                } else {
+                    totalWithGST = totalRate;
+                }
+
+                resultDisplay.textContent = typeof totalRate === 'number' ? `₹${totalRate.toFixed(2)}` : totalRate;
+                resultDisplayGST.textContent = typeof totalWithGST === 'number' ? `₹${totalWithGST.toFixed(2)}` : totalWithGST;
+            }
+
+            // Initial setup
+            window.onload = () => {
+                renderRateCards();
+            };
+        });
+    </script>
+</body>
+</html>
