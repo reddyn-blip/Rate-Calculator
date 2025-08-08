@@ -417,6 +417,7 @@
                     row.remove();
                     calculateRate();
                 });
+                row.querySelectorAll('input').forEach(input => input.addEventListener('input', calculateRate));
             }
 
             function renderRateCards() {
