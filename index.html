@@ -208,7 +208,7 @@
 
     <!-- Modal for adding a new rate card -->
     <div id="add-card-modal" class="modal-overlay hidden">
-        <div class="bg-white p-6 rounded-xl w-full max-w-lg card relative max-h-full overflow-y-auto">
+        <div class="bg-white p-6 rounded-xl w-full max-w-2xl card relative max-h-full overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-bold text-gray-800">Add New Rate Card</h2>
                 <button id="close-modal-btn" type="button" class="text-gray-500 hover:text-gray-800">
@@ -357,17 +357,13 @@
                 const row = document.createElement('tr');
                 row.classList.add('rate-row');
                 row.innerHTML = `
-                    <td class="py-2 px-3">
-                        <input type="number" step="0.01" class="w-full p-1 border rounded-md" data-input="min-weight" value="${start}">
-                    </td>
-                    <td class="py-2 px-3">
-                        <input type="number" step="0.01" class="w-full p-1 border rounded-md" data-input="max-weight" value="${end}">
-                    </td>
-                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md" data-zone="Local" value="${rates['Local'] || 0}"></td>
-                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md" data-zone="Zonal" value="${rates['Zonal'] || 0}"></td>
-                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md" data-zone="Metro Std" value="${rates['Metro Std'] || 0}"></td>
-                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md" data-zone="ROI Std" value="${rates['ROI Std'] || 0}"></td>
-                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md" data-zone="NE J&K Std" value="${rates['NE J&K Std'] || 0}"></td>
+                    <td class="py-2 px-3"><input type="number" step="0.01" class="w-full p-1 border rounded-md min-w-[70px]" data-input="min-weight" value="${start}"></td>
+                    <td class="py-2 px-3"><input type="number" step="0.01" class="w-full p-1 border rounded-md min-w-[70px]" data-input="max-weight" value="${end}"></td>
+                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md min-w-[70px]" data-zone="Local" value="${rates['Local'] || 0}"></td>
+                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md min-w-[70px]" data-zone="Zonal" value="${rates['Zonal'] || 0}"></td>
+                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md min-w-[70px]" data-zone="Metro Std" value="${rates['Metro Std'] || 0}"></td>
+                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md min-w-[70px]" data-zone="ROI Std" value="${rates['ROI Std'] || 0}"></td>
+                    <td class="py-2 px-3"><input type="number" step="0.1" class="w-full p-1 border rounded-md min-w-[70px]" data-zone="NE J&K Std" value="${rates['NE J&K Std'] || 0}"></td>
                     <td class="py-2 px-3">
                         <button type="button" class="remove-weight-range-btn text-red-500 hover:text-red-700">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -551,16 +547,18 @@
                     return;
                 }
 
-                let lastMaxWeight = 0;
+                let lastMaxWeight = -1; // Use -1 to handle the first tier starting at 0
                 let isValid = true;
                 rows.forEach(row => {
+                    if (!isValid) return;
+
                     const minWeightInput = row.querySelector('[data-input="min-weight"]');
                     const maxWeightInput = row.querySelector('[data-input="max-weight"]');
                     
                     const min = parseFloat(minWeightInput.value);
-                    const max = parseFloat(maxWeightInput.value);
+                    const max = maxWeightInput.value === 'Infinity' ? Infinity : parseFloat(maxWeightInput.value);
 
-                    if (isNaN(min) || isNaN(max) || min < lastMaxWeight || max <= min) {
+                    if (isNaN(min) || (max !== Infinity && isNaN(max)) || min < lastMaxWeight || (max !== Infinity && max <= min)) {
                          alert('Please enter valid, sequential weight ranges.');
                          isValid = false;
                          return;
